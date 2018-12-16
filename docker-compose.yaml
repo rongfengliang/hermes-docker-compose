@@ -1,0 +1,57 @@
+version: '3'
+services:
+  graphite:
+    image: nickstenning/graphite
+    ports:
+      - "80:80"
+      - "2003:2003"
+  frontend:
+    image: allegro/hermes-frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - zk
+      - kafka
+      - graphite
+  zk:
+    image: wurstmeister/zookeeper:3.4.6
+    ports:
+      - "2181:2181"
+  kafka:
+    image: wurstmeister/kafka:1.1.0
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zk
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ADVERTISED_PORT: 9092
+      KAFKA_ZOOKEEPER_CONNECT: zk:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'
+      KAFKA_DELETE_TOPIC_ENABLE: 'true'
+      KAFKA_BROKER_ID: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+  consumers:
+    image: allegro/hermes-consumers
+    depends_on:
+      - zk
+      - kafka
+      - graphite
+  benthos:
+    image: jeffail/benthos
+    volumes:
+    - "./conf/webhook.yaml:/benthos.yaml"
+    ports:
+    - "4195:4195"
+  management:
+    image: allegro/hermes-management
+    ports:
+      - "8090:8090"
+    depends_on:
+      - zk
+      - kafka
+      - graphite
+
+
+
